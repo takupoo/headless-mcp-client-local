@@ -1,0 +1,118 @@
+version: "1.0"
+
+rules:
+  # Currency patterns (Japanese Yen)
+  - name: currency_jpy
+    category: financial
+    pattern: '¥[\d,]+(?:\.\d{2})?'
+    replacement_prefix: "[AMOUNT_"
+    reversible: true
+
+  # Currency patterns (US Dollar)
+  - name: currency_usd
+    category: financial
+    pattern: '\$[\d,]+(?:\.\d{2})?'
+    replacement_prefix: "[AMOUNT_USD_"
+    reversible: true
+
+  # Large numbers (potentially sensitive costs/revenues)
+  - name: large_numbers
+    category: financial
+    pattern: '\b\d{6,}\b'
+    replacement_prefix: "[NUM_"
+    reversible: true
+    enabled: false  # Enable if needed
+
+  # Percentage (optional)
+  - name: percentage
+    category: financial
+    pattern: '\d+(?:\.\d+)?%'
+    replacement_prefix: "[PCT_"
+    reversible: true
+    enabled: false  # Enable if needed
+
+  # Campaign identifiers
+  - name: campaign_id
+    category: identifier
+    pattern: 'campaign[_-]?(?:id)?[:\s]*(\d+)'
+    replacement_prefix: "[CAMPAIGN_ID_"
+    reversible: true
+
+  # Ad group identifiers
+  - name: ad_group_id
+    category: identifier
+    pattern: 'ad[_-]?group[_-]?(?:id)?[:\s]*(\d+)'
+    replacement_prefix: "[ADGROUP_ID_"
+    reversible: true
+
+  # Account identifiers
+  - name: account_id
+    category: identifier
+    pattern: 'account[_-]?(?:id)?[:\s]*(\d+)'
+    replacement_prefix: "[ACCOUNT_ID_"
+    reversible: true
+
+  # Email addresses (PII - non-reversible)
+  - name: email
+    category: pii
+    pattern: '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+    replacement: "[EMAIL_MASKED]"
+    reversible: false
+
+  # Japanese phone numbers (PII - non-reversible)
+  - name: phone_jp
+    category: pii
+    pattern: '(?:\+?81|0)\d{1,4}[-\s]?\d{1,4}[-\s]?\d{4}'
+    replacement: "[PHONE_MASKED]"
+    reversible: false
+
+  # IP addresses (PII - non-reversible)
+  - name: ip_address
+    category: pii
+    pattern: '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
+    replacement: "[IP_MASKED]"
+    reversible: false
+
+  # Credit card numbers (PII - non-reversible)
+  - name: credit_card
+    category: pii
+    pattern: '\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b'
+    replacement: "[CC_MASKED]"
+    reversible: false
+
+# Dictionary-based masking (for client/competitor names)
+dictionaries:
+  clients:
+    source: "config/client-names.txt"
+    category: business
+    replacement_prefix: "[CLIENT_"
+    reversible: true
+
+  competitors:
+    source: "config/competitor-names.txt"
+    category: business
+    replacement_prefix: "[COMPETITOR_"
+    reversible: true
+
+# Category-level settings
+categories:
+  financial:
+    description: "Financial data (costs, budgets, revenues)"
+    log_access: true
+    require_unmask_permission: true
+
+  identifier:
+    description: "Campaign and account identifiers"
+    log_access: false
+    require_unmask_permission: false
+
+  pii:
+    description: "Personally identifiable information"
+    log_access: true
+    require_unmask_permission: true
+    allow_unmask: false  # Never allow unmasking PII
+
+  business:
+    description: "Business confidential information"
+    log_access: true
+    require_unmask_permission: true

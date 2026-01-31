@@ -1,0 +1,101 @@
+version: "1.0"
+
+server:
+  name: "ga4-mcp-server"
+  version: "1.0.0"
+
+# Authentication configuration
+credentials:
+  type: service_account_json
+  json: ${GA4_SA_KEY_JSON}
+
+# Property configuration
+properties:
+  - id: ${GA4_PROPERTY_ID}
+    name: "Main Property"
+    allowed: true
+
+# Tool definitions
+tools:
+  # Run report
+  - name: run_report
+    description: |
+      Execute a report against a GA4 property.
+      Specify dimensions, metrics, and date range to retrieve data.
+    parameters:
+      property_id:
+        type: string
+        required: true
+        description: GA4 property ID (properties/123456 format)
+      date_ranges:
+        type: array
+        required: true
+        description: Array of date ranges
+        items:
+          type: object
+          properties:
+            start_date:
+              type: string
+              description: Start date (YYYY-MM-DD, today, yesterday, NdaysAgo)
+            end_date:
+              type: string
+              description: End date
+      dimensions:
+        type: array
+        description: Array of dimension names
+        items:
+          type: string
+      metrics:
+        type: array
+        required: true
+        description: Array of metric names
+        items:
+          type: string
+      dimension_filter:
+        type: object
+        description: Dimension filter
+      metric_filter:
+        type: object
+        description: Metric filter
+      order_bys:
+        type: array
+        description: Sort order
+      limit:
+        type: integer
+        default: 10000
+        description: Maximum rows to return
+
+  # Realtime report
+  - name: get_realtime
+    description: Get realtime data
+    parameters:
+      property_id:
+        type: string
+        required: true
+      dimensions:
+        type: array
+        items:
+          type: string
+      metrics:
+        type: array
+        required: true
+        items:
+          type: string
+      limit:
+        type: integer
+        default: 100
+
+  # List dimensions
+  - name: list_dimensions
+    description: Get list of available dimensions
+    parameters: {}
+
+  # List metrics
+  - name: list_metrics
+    description: Get list of available metrics
+    parameters: {}
+
+# Rate limiting
+rate_limits:
+  requests_per_minute: 60
+  requests_per_day: 50000

@@ -1,0 +1,91 @@
+version: "1.0"
+
+# Data source configuration
+sources:
+  analytics:
+    kind: bigquery
+    project: ${GCP_PROJECT_ID}
+    location: asia-northeast1
+    credentials:
+      type: service_account_json
+      json: ${BIGQUERY_SA_KEY_JSON}
+
+# Tool definitions
+tools:
+  # List tables
+  - name: list_tables
+    kind: bigquery-list-tables
+    source: analytics
+    description: |
+      Get a list of available tables.
+      If no dataset is specified, returns all accessible tables.
+    parameters:
+      dataset:
+        type: string
+        required: false
+        description: Dataset name (optional)
+
+  # Describe table schema
+  - name: describe_table
+    kind: bigquery-describe-table
+    source: analytics
+    description: |
+      Get schema (column definitions) for a specified table.
+      Includes partitioning and clustering settings.
+    parameters:
+      table:
+        type: string
+        required: true
+        description: Table name (dataset.table format)
+
+  # Execute SQL query
+  - name: execute_sql
+    kind: bigquery-execute
+    source: analytics
+    description: |
+      Execute a SQL query against BigQuery.
+      Only SELECT statements are allowed.
+    parameters:
+      query:
+        type: string
+        required: true
+        description: SQL query to execute
+      max_rows:
+        type: integer
+        required: false
+        default: 1000
+        description: Maximum rows to return
+      dry_run:
+        type: boolean
+        required: false
+        default: false
+        description: If true, only estimate cost
+
+    # Security constraints
+    constraints:
+      read_only: true
+      allowed_datasets:
+        - analytics
+        - ads_reporting
+        - conversions
+      max_bytes_billed: 10737418240  # 10GB
+      timeout_ms: 120000  # 2 minutes
+
+  # Sample data (for debugging)
+  - name: sample_data
+    kind: bigquery-execute
+    source: analytics
+    description: Get sample data from a table
+    parameters:
+      table:
+        type: string
+        required: true
+      limit:
+        type: integer
+        required: false
+        default: 10
+    template: |
+      SELECT * FROM `{{ table }}` LIMIT {{ limit }}
+    constraints:
+      read_only: true
+      max_bytes_billed: 1073741824  # 1GB
