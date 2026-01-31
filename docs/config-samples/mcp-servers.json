@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "MCP サーバー設定ファイル",
+
+  "mcpServers": {
+    "bigquery": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@google/mcp-toolbox",
+        "--config",
+        "./config/bigquery-mcp.yaml"
+      ],
+      "env": {
+        "GOOGLE_APPLICATION_CREDENTIALS": "${GCP_SA_KEY_PATH}",
+        "GOOGLE_CLOUD_PROJECT": "${GCP_PROJECT_ID}"
+      },
+      "timeout": 120000,
+      "retryConfig": {
+        "maxRetries": 3,
+        "backoffMs": 1000,
+        "backoffMultiplier": 2
+      },
+      "healthCheck": {
+        "enabled": true,
+        "intervalMs": 30000,
+        "command": "list_tables"
+      }
+    },
+
+    "ga4": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@google/ga4-mcp-server",
+        "--config",
+        "./config/ga4-mcp.yaml"
+      ],
+      "env": {
+        "GOOGLE_APPLICATION_CREDENTIALS": "${GCP_SA_KEY_PATH}",
+        "GA4_PROPERTY_ID": "${GA4_PROPERTY_ID}"
+      },
+      "timeout": 60000,
+      "retryConfig": {
+        "maxRetries": 3,
+        "backoffMs": 2000,
+        "backoffMultiplier": 2
+      },
+      "healthCheck": {
+        "enabled": true,
+        "intervalMs": 60000,
+        "command": "list_metrics"
+      }
+    },
+
+    "data-masking": {
+      "type": "in-sdk",
+      "module": "./src/mcp/dataMaskingServer.ts",
+      "config": {
+        "rulesPath": "./config/masking-rules.yaml",
+        "sessionTTL": 3600000
+      }
+    }
+  },
+
+  "serverGroups": {
+    "data-sources": ["bigquery", "ga4"],
+    "security": ["data-masking"]
+  },
+
+  "connectionPool": {
+    "maxConnections": 10,
+    "idleTimeoutMs": 300000,
+    "acquireTimeoutMs": 30000
+  },
+
+  "logging": {
+    "enabled": true,
+    "level": "info",
+    "includePayload": false,
+    "maskSensitive": true
+  }
+}

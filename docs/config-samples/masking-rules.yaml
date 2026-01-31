@@ -1,0 +1,288 @@
+# データマスキングルール設定
+# BigQuery/GA4分析エージェント用
+
+version: "1.0"
+
+# グローバル設定
+settings:
+  # デフォルトでマスキングを有効化
+  default_enabled: true
+  # セッションマッピングの保持時間
+  session_ttl: 3600  # 1時間
+  # ログ出力
+  log_masking_events: true
+
+# パターンベースのマスキングルール
+rules:
+  # ========== 金額・財務情報 ==========
+  - name: currency_jpy
+    description: "日本円の金額"
+    category: financial
+    pattern: '¥[\d,]+(?:\.\d{2})?'
+    replacement_prefix: "[AMOUNT_JPY_"
+    reversible: true
+    enabled: true
+    priority: 100
+
+  - name: currency_usd
+    description: "米ドルの金額"
+    category: financial
+    pattern: '\$[\d,]+(?:\.\d{2})?'
+    replacement_prefix: "[AMOUNT_USD_"
+    reversible: true
+    enabled: true
+    priority: 100
+
+  - name: currency_eur
+    description: "ユーロの金額"
+    category: financial
+    pattern: '€[\d,]+(?:\.\d{2})?'
+    replacement_prefix: "[AMOUNT_EUR_"
+    reversible: true
+    enabled: true
+    priority: 100
+
+  - name: large_numbers
+    description: "大きな数値（100万以上）- 予算や売上の可能性"
+    category: financial
+    pattern: '\b\d{1,3}(?:,\d{3}){2,}\b'
+    replacement_prefix: "[LARGE_NUM_"
+    reversible: true
+    enabled: false  # 必要に応じて有効化
+    priority: 50
+
+  # ========== 識別子 ==========
+  - name: campaign_id
+    description: "キャンペーンID"
+    category: identifier
+    pattern: 'campaign[_-]?(?:id)?[:\s]*(\d+)'
+    replacement_prefix: "[CAMPAIGN_ID_"
+    reversible: true
+    enabled: true
+    priority: 80
+
+  - name: ad_group_id
+    description: "広告グループID"
+    category: identifier
+    pattern: 'ad[_-]?group[_-]?(?:id)?[:\s]*(\d+)'
+    replacement_prefix: "[ADGROUP_ID_"
+    reversible: true
+    enabled: true
+    priority: 80
+
+  - name: account_id
+    description: "広告アカウントID"
+    category: identifier
+    pattern: 'account[_-]?(?:id)?[:\s]*(\d+)'
+    replacement_prefix: "[ACCOUNT_ID_"
+    reversible: true
+    enabled: true
+    priority: 80
+
+  - name: customer_id
+    description: "顧客ID"
+    category: identifier
+    pattern: 'customer[_-]?(?:id)?[:\s]*(\d+)'
+    replacement_prefix: "[CUSTOMER_ID_"
+    reversible: true
+    enabled: true
+    priority: 80
+
+  - name: ga4_property_id
+    description: "GA4プロパティID"
+    category: identifier
+    pattern: 'properties/(\d+)'
+    replacement_prefix: "[GA4_PROPERTY_"
+    reversible: true
+    enabled: true
+    priority: 80
+
+  # ========== 個人識別情報（PII） ==========
+  - name: email
+    description: "メールアドレス"
+    category: pii
+    pattern: '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+    replacement: "[EMAIL_MASKED]"
+    reversible: false  # 復元不可
+    enabled: true
+    priority: 200
+
+  - name: phone_jp
+    description: "日本の電話番号"
+    category: pii
+    pattern: '(?:\+?81|0)\d{1,4}[-\s]?\d{1,4}[-\s]?\d{4}'
+    replacement: "[PHONE_MASKED]"
+    reversible: false
+    enabled: true
+    priority: 200
+
+  - name: phone_intl
+    description: "国際電話番号"
+    category: pii
+    pattern: '\+\d{1,3}[-\s]?\d{1,4}[-\s]?\d{1,4}[-\s]?\d{4}'
+    replacement: "[PHONE_MASKED]"
+    reversible: false
+    enabled: true
+    priority: 200
+
+  - name: ip_address
+    description: "IPアドレス"
+    category: pii
+    pattern: '\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
+    replacement: "[IP_MASKED]"
+    reversible: false
+    enabled: true
+    priority: 190
+
+  - name: credit_card
+    description: "クレジットカード番号"
+    category: pii
+    pattern: '\b(?:\d{4}[-\s]?){3}\d{4}\b'
+    replacement: "[CARD_MASKED]"
+    reversible: false
+    enabled: true
+    priority: 250
+
+  # ========== URL・パス ==========
+  - name: url_with_params
+    description: "パラメータ付きURL"
+    category: url
+    pattern: 'https?://[^\s]+\?[^\s]+'
+    replacement_prefix: "[URL_"
+    reversible: true
+    enabled: false  # 分析には必要なことが多いので無効
+    priority: 30
+
+  - name: internal_url
+    description: "社内URL"
+    category: url
+    pattern: 'https?://(?:internal|intranet|admin)\.[^\s]+'
+    replacement_prefix: "[INTERNAL_URL_"
+    reversible: true
+    enabled: true
+    priority: 60
+
+# 辞書ベースのマスキング
+dictionaries:
+  # クライアント名辞書
+  clients:
+    description: "クライアント企業名"
+    source: "./config/dictionaries/client-names.txt"
+    category: business
+    replacement_prefix: "[CLIENT_"
+    reversible: true
+    case_sensitive: false
+    word_boundary: true  # 単語境界でのみマッチ
+
+  # 競合企業名辞書
+  competitors:
+    description: "競合企業名"
+    source: "./config/dictionaries/competitor-names.txt"
+    category: business
+    replacement_prefix: "[COMPETITOR_"
+    reversible: true
+    case_sensitive: false
+    word_boundary: true
+
+  # 社内プロジェクト名
+  projects:
+    description: "社内プロジェクト名"
+    source: "./config/dictionaries/project-names.txt"
+    category: business
+    replacement_prefix: "[PROJECT_"
+    reversible: true
+    case_sensitive: false
+    word_boundary: true
+
+# カテゴリ設定
+categories:
+  financial:
+    description: "金額・財務情報"
+    always_mask: true
+    allow_unmask: true
+    log_access: true
+    require_permission: false
+
+  identifier:
+    description: "各種識別子"
+    always_mask: false  # 分析に必要な場合はマスキングしない
+    allow_unmask: true
+    log_access: false
+    require_permission: false
+
+  pii:
+    description: "個人識別情報"
+    always_mask: true
+    allow_unmask: false  # アンマスキング禁止
+    log_access: true
+    require_permission: true
+    alert_on_detection: true
+
+  business:
+    description: "ビジネス機密情報"
+    always_mask: true
+    allow_unmask: true
+    log_access: true
+    require_permission: true
+
+  url:
+    description: "URL・パス情報"
+    always_mask: false
+    allow_unmask: true
+    log_access: false
+    require_permission: false
+
+# フィールド単位のマスキング設定（JSONオブジェクト用）
+field_rules:
+  # 常にマスキングするフィールド
+  always_mask:
+    - "cost"
+    - "spend"
+    - "budget"
+    - "revenue"
+    - "profit"
+    - "price"
+    - "cpa"
+    - "cpc"
+    - "cpm"
+    - "roas"
+    - "email"
+    - "phone"
+    - "ip_address"
+    - "user_id"
+    - "customer_id"
+
+  # マスキングしないフィールド
+  never_mask:
+    - "date"
+    - "event_date"
+    - "sessions"
+    - "users"
+    - "pageviews"
+    - "bounce_rate"
+    - "conversion_rate"
+
+# 例外設定
+exceptions:
+  # テスト環境ではマスキングを緩和
+  environments:
+    development:
+      mask_financial: false
+      mask_identifiers: false
+    test:
+      mask_financial: false
+      mask_identifiers: false
+    production:
+      mask_financial: true
+      mask_identifiers: true
+
+  # 特定のユーザー/ロールは完全データにアクセス可能
+  roles:
+    admin:
+      bypass_masking: true
+    analyst:
+      bypass_masking: false
+      allow_unmask: true
+    viewer:
+      bypass_masking: false
+      allow_unmask: false
