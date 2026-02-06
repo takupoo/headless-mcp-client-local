@@ -1,0 +1,26 @@
+{
+  "name": "headless-mcp-client",
+  "version": "0.1.0",
+  "description": "BigQuery/GA4データをMCP経由で取得し、AIエージェントが自律的に分析するシステム",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.34",
+    "agentic-flow": "^2.0.6",
+    "dotenv": "^16.4.5",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.19",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
